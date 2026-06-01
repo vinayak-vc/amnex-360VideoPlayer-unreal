@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(reg query \"HKLM\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\FileSystem\" /v LongPathsEnabled)",
+      "mcp__unrealClaude__unreal_spawn_actor",
+      "mcp__unrealClaude__unreal_get_level_actors",
+      "mcp__unrealClaude__unreal_set_property",
+      "mcp__unrealClaude__unreal_blueprint_query",
+      "mcp__unrealClaude__unreal_asset_search",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "mcp__unrealClaude__unreal_ue"
+    ]
+  }
+}
