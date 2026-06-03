@@ -9,7 +9,12 @@ public class StereoscopicProject : ModuleRules {
             "Core",
             "CoreUObject",
             "Engine",
-            "InputCore"
+            "InputCore",
+            "LidarPointCloudRuntime",
+            "UMG",
+            "Slate",
+            "SlateCore",
+            "EnhancedInput"
         });
     }
 }
