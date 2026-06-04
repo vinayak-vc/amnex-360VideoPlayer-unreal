@@ -12,4 +12,8 @@ class STEREOSCOPICPROJECT_API AFlyingGameMode : public AGameModeBase
 
 public:
     AFlyingGameMode();
+
+protected:
+    virtual void BeginPlay() override;
 };
+

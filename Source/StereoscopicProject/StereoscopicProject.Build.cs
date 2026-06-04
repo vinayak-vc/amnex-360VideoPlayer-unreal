@@ -14,7 +14,8 @@ public class StereoscopicProject : ModuleRules {
             "UMG",
             "Slate",
             "SlateCore",
-            "EnhancedInput"
+            "EnhancedInput",
+            "DisplayCluster"
         });
     }
 }

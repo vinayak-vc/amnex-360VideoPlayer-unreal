@@ -2,8 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Camera/CameraComponent.h"
 #include "InputActionValue.h"
 #include "FlyPawn.generated.h"
+
+class ADisplayClusterRootActor;
 
 UCLASS()
 class STEREOSCOPICPROJECT_API AFlyPawn : public APawn
@@ -24,8 +27,12 @@ protected:
     void MoveBack(const FInputActionValue& Value);
     void MoveRight(const FInputActionValue& Value);
     void MoveLeft(const FInputActionValue& Value);
+    void MoveUp(const FInputActionValue& Value);
+    void MoveDown(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
     void ToggleUI();
+    virtual void Tick(float DeltaSeconds) override;
+    
 
     // Mapping context
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -45,20 +52,33 @@ protected:
     class UInputAction* MoveLeftAction;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* MoveUpAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+    class UInputAction* MoveDownAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
     class UInputAction* LookAction;
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
     class UInputAction* ToggleUIAction;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
-    class UCameraComponent* CameraComponent;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="nDisplay")
+    ADisplayClusterRootActor* DisplayClusterActor;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-    class UFloatingPawnMovement* FloatingMovement;
+    // LOD-correction camera: constrained to 16:9 so LocalPlayer::CalcSceneView()
+    // returns a projection matrix with correct ScreenSizeFactor regardless of the
+    // nDisplay SBS game viewport (3840x1080, aspect ~3.56). Without this, nDisplay's
+    // wide viewport inflates ScreenSizeFactor ~4x vs PIE → budget saturates at coarse
+    // octree nodes → point cloud renders as large cubes.
+    UPROPERTY(VisibleAnywhere, Category = "LOD")
+    UCameraComponent* LODCamera;
 
 private:
     UPROPERTY()
     class UPointCloudLoaderWidget* LoaderWidget;
 
+    FVector CurrentMovementInput;
     bool bUIVisible = false;
 };
+

@@ -68,11 +68,23 @@ FMCPToolResult FMCPTool_EnhancedInput::Execute(const TSharedRef<FJsonObject>& Pa
 	{
 		return ExecuteGetActionInfo(Params);
 	}
+	if (Operation == TEXT("remove_trigger"))
+	{
+		return ExecuteRemoveTrigger(Params);
+	}
+	if (Operation == TEXT("remove_modifier"))
+	{
+		return ExecuteRemoveModifier(Params);
+	}
+	if (Operation == TEXT("create_imc_from_config"))
+	{
+		return ExecuteCreateIMCFromConfig(Params);
+	}
 
 	return FMCPToolResult::Error(FString::Printf(
 		TEXT("Unknown operation: %s. Valid operations: create_input_action, create_mapping_context, "
-			"add_mapping, remove_mapping, add_trigger, add_modifier, query_context, query_action, "
-			"list_actions, list_contexts, get_action_info"),
+			"add_mapping, remove_mapping, add_trigger, add_modifier, remove_trigger, remove_modifier, "
+			"query_context, query_action, list_actions, list_contexts, get_action_info, create_imc_from_config"),
 		*Operation));
 }
 
@@ -1216,6 +1228,403 @@ UInputModifier* FMCPTool_EnhancedInput::CreateModifier(const FString& ModifierTy
 	}
 
 	return Modifier;
+}
+
+// ============================================================================
+// Remove Trigger / Remove Modifier Operations
+// ============================================================================
+
+FMCPToolResult FMCPTool_EnhancedInput::ExecuteRemoveTrigger(const TSharedRef<FJsonObject>& Params)
+{
+	FString ContextPath, ActionPath;
+	TOptional<FMCPToolResult> Error;
+
+	if (!ExtractRequiredString(Params, TEXT("context_path"), ContextPath, Error))
+	{
+		return Error.GetValue();
+	}
+	if (!ExtractRequiredString(Params, TEXT("action_path"), ActionPath, Error))
+	{
+		return Error.GetValue();
+	}
+
+	int32 TriggerIndex = ExtractOptionalNumber<int32>(Params, TEXT("trigger_index"), -1);
+	if (TriggerIndex < 0)
+	{
+		return FMCPToolResult::Error(TEXT("Missing required parameter: trigger_index"));
+	}
+
+	FString LoadError;
+	UInputMappingContext* Context = LoadMappingContext(ContextPath, LoadError);
+	if (!Context) return FMCPToolResult::Error(LoadError);
+
+	UInputAction* Action = LoadInputAction(ActionPath, LoadError);
+	if (!Action) return FMCPToolResult::Error(LoadError);
+
+	FString MappingError;
+	int32 MappingIndex = FindMappingIndex(Context, Action, Params, MappingError);
+	if (MappingIndex < 0) return FMCPToolResult::Error(MappingError);
+
+	TArray<FEnhancedActionKeyMapping>& Mappings = const_cast<TArray<FEnhancedActionKeyMapping>&>(Context->GetMappings());
+
+	if (TriggerIndex >= Mappings[MappingIndex].Triggers.Num())
+	{
+		return FMCPToolResult::Error(FString::Printf(
+			TEXT("Invalid trigger_index %d. Mapping has %d triggers (0-%d)"),
+			TriggerIndex, Mappings[MappingIndex].Triggers.Num(),
+			Mappings[MappingIndex].Triggers.Num() - 1));
+	}
+
+	FString RemovedType = Mappings[MappingIndex].Triggers[TriggerIndex]
+		? Mappings[MappingIndex].Triggers[TriggerIndex]->GetClass()->GetName()
+		: TEXT("Null");
+
+	Mappings[MappingIndex].Triggers.RemoveAt(TriggerIndex);
+
+	Context->MarkPackageDirty();
+	FString SaveError;
+	if (!SaveAsset(Context, SaveError)) return FMCPToolResult::Error(SaveError);
+
+	TSharedPtr<FJsonObject> ResultData = MakeShared<FJsonObject>();
+	ResultData->SetNumberField(TEXT("removed_trigger_index"), TriggerIndex);
+	ResultData->SetStringField(TEXT("removed_trigger_type"), RemovedType);
+	ResultData->SetNumberField(TEXT("remaining_triggers"), Mappings[MappingIndex].Triggers.Num());
+
+	return FMCPToolResult::Success(
+		FString::Printf(TEXT("Removed trigger %d (%s) from %s"), TriggerIndex, *RemovedType, *Action->GetName()),
+		ResultData);
+}
+
+FMCPToolResult FMCPTool_EnhancedInput::ExecuteRemoveModifier(const TSharedRef<FJsonObject>& Params)
+{
+	FString ContextPath, ActionPath;
+	TOptional<FMCPToolResult> Error;
+
+	if (!ExtractRequiredString(Params, TEXT("context_path"), ContextPath, Error))
+	{
+		return Error.GetValue();
+	}
+	if (!ExtractRequiredString(Params, TEXT("action_path"), ActionPath, Error))
+	{
+		return Error.GetValue();
+	}
+
+	int32 ModifierIndex = ExtractOptionalNumber<int32>(Params, TEXT("modifier_index"), -1);
+	if (ModifierIndex < 0)
+	{
+		return FMCPToolResult::Error(TEXT("Missing required parameter: modifier_index"));
+	}
+
+	FString LoadError;
+	UInputMappingContext* Context = LoadMappingContext(ContextPath, LoadError);
+	if (!Context) return FMCPToolResult::Error(LoadError);
+
+	UInputAction* Action = LoadInputAction(ActionPath, LoadError);
+	if (!Action) return FMCPToolResult::Error(LoadError);
+
+	FString MappingError;
+	int32 MappingIndex = FindMappingIndex(Context, Action, Params, MappingError);
+	if (MappingIndex < 0) return FMCPToolResult::Error(MappingError);
+
+	TArray<FEnhancedActionKeyMapping>& Mappings = const_cast<TArray<FEnhancedActionKeyMapping>&>(Context->GetMappings());
+
+	if (ModifierIndex >= Mappings[MappingIndex].Modifiers.Num())
+	{
+		return FMCPToolResult::Error(FString::Printf(
+			TEXT("Invalid modifier_index %d. Mapping has %d modifiers (0-%d)"),
+			ModifierIndex, Mappings[MappingIndex].Modifiers.Num(),
+			Mappings[MappingIndex].Modifiers.Num() - 1));
+	}
+
+	FString RemovedType = Mappings[MappingIndex].Modifiers[ModifierIndex]
+		? Mappings[MappingIndex].Modifiers[ModifierIndex]->GetClass()->GetName()
+		: TEXT("Null");
+
+	Mappings[MappingIndex].Modifiers.RemoveAt(ModifierIndex);
+
+	Context->MarkPackageDirty();
+	FString SaveError;
+	if (!SaveAsset(Context, SaveError)) return FMCPToolResult::Error(SaveError);
+
+	TSharedPtr<FJsonObject> ResultData = MakeShared<FJsonObject>();
+	ResultData->SetNumberField(TEXT("removed_modifier_index"), ModifierIndex);
+	ResultData->SetStringField(TEXT("removed_modifier_type"), RemovedType);
+	ResultData->SetNumberField(TEXT("remaining_modifiers"), Mappings[MappingIndex].Modifiers.Num());
+
+	return FMCPToolResult::Success(
+		FString::Printf(TEXT("Removed modifier %d (%s) from %s"), ModifierIndex, *RemovedType, *Action->GetName()),
+		ResultData);
+}
+
+// ============================================================================
+// Batch IMC Creation from Config
+// ============================================================================
+
+FMCPToolResult FMCPTool_EnhancedInput::ExecuteCreateIMCFromConfig(const TSharedRef<FJsonObject>& Params)
+{
+	FString ContextPath = ExtractOptionalString(Params, TEXT("context_path"));
+	FString ContextName = ExtractOptionalString(Params, TEXT("context_name"));
+	FString PackagePath = ExtractOptionalString(Params, TEXT("package_path"), TEXT("/Game/Input"));
+
+	const TSharedPtr<FJsonObject>* ConfigObj;
+	if (!Params->TryGetObjectField(TEXT("config"), ConfigObj) || !ConfigObj || !(*ConfigObj).IsValid())
+	{
+		return FMCPToolResult::Error(
+			TEXT("Missing required parameter: config. Expected JSON object with 'mappings' array.\n"
+				"Example: {\"mappings\": [{\"key\": \"W\", \"action\": \"IA_MoveForward\", "
+				"\"triggers\": [\"Pressed\"], \"modifiers\": [\"Negate\"]}]}"));
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* MappingsArray;
+	if (!(*ConfigObj)->TryGetArrayField(TEXT("mappings"), MappingsArray) || !MappingsArray)
+	{
+		return FMCPToolResult::Error(TEXT("Config must contain 'mappings' array"));
+	}
+
+	// Load or create context
+	UInputMappingContext* Context = nullptr;
+	FString LoadError;
+
+	if (!ContextPath.IsEmpty())
+	{
+		Context = LoadMappingContext(ContextPath, LoadError);
+		if (!Context) return FMCPToolResult::Error(LoadError);
+	}
+	else if (!ContextName.IsEmpty())
+	{
+		// Create new context
+		FString ValidationError;
+		if (!FMCPParamValidator::ValidateBlueprintPath(PackagePath, ValidationError))
+		{
+			return FMCPToolResult::Error(ValidationError);
+		}
+
+		FString FullPath = PackagePath / ContextName;
+		UPackage* Package = CreatePackage(*FullPath);
+		if (!Package) return FMCPToolResult::Error(FString::Printf(TEXT("Failed to create package: %s"), *FullPath));
+
+		Context = NewObject<UInputMappingContext>(Package, FName(*ContextName), RF_Public | RF_Standalone);
+		if (!Context) return FMCPToolResult::Error(TEXT("Failed to create InputMappingContext"));
+
+		Package->MarkPackageDirty();
+		FAssetRegistryModule::AssetCreated(Context);
+	}
+	else
+	{
+		return FMCPToolResult::Error(TEXT("Must provide context_path (existing) or context_name (create new)"));
+	}
+
+	int32 MappingsAdded = 0;
+	int32 TriggersAdded = 0;
+	int32 ModifiersAdded = 0;
+	TArray<FString> Errors;
+	TArray<FString> Warnings;
+
+	for (int32 i = 0; i < MappingsArray->Num(); ++i)
+	{
+		const TSharedPtr<FJsonObject>* MappingObj;
+		if (!(*MappingsArray)[i]->TryGetObject(MappingObj) || !MappingObj)
+		{
+			Errors.Add(FString::Printf(TEXT("mappings[%d]: not an object"), i));
+			continue;
+		}
+
+		// Extract key
+		FString KeyName;
+		if (!(*MappingObj)->TryGetStringField(TEXT("key"), KeyName) || KeyName.IsEmpty())
+		{
+			Errors.Add(FString::Printf(TEXT("mappings[%d]: missing 'key'"), i));
+			continue;
+		}
+
+		FString KeyError;
+		FKey Key = ParseKey(KeyName, KeyError);
+		if (!Key.IsValid())
+		{
+			Errors.Add(FString::Printf(TEXT("mappings[%d]: %s"), i, *KeyError));
+			continue;
+		}
+
+		// Extract action — accept path or name
+		FString ActionRef;
+		if (!(*MappingObj)->TryGetStringField(TEXT("action"), ActionRef) || ActionRef.IsEmpty())
+		{
+			Errors.Add(FString::Printf(TEXT("mappings[%d]: missing 'action'"), i));
+			continue;
+		}
+
+		// Resolve action: try as path first, then name search
+		FString ActionLoadError;
+		UInputAction* Action = nullptr;
+
+		if (ActionRef.StartsWith(TEXT("/Game/")) || ActionRef.StartsWith(TEXT("/Script/")))
+		{
+			Action = LoadInputAction(ActionRef, ActionLoadError);
+		}
+
+		if (!Action)
+		{
+			// Try resolving by name
+			int32 TotalFound = 0;
+			IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+			TArray<FAssetData> AllActions;
+			AssetRegistry.GetAssetsByClass(UInputAction::StaticClass()->GetClassPathName(), AllActions, true);
+
+			for (const FAssetData& AssetData : AllActions)
+			{
+				if (AssetData.AssetName.ToString().Equals(ActionRef, ESearchCase::IgnoreCase))
+				{
+					Action = Cast<UInputAction>(AssetData.GetAsset());
+					break;
+				}
+			}
+		}
+
+		if (!Action)
+		{
+			Errors.Add(FString::Printf(TEXT("mappings[%d]: action not found: %s"), i, *ActionRef));
+			continue;
+		}
+
+		// Add mapping
+		FEnhancedActionKeyMapping& NewMapping = Context->MapKey(Action, Key);
+		MappingsAdded++;
+
+		// Add triggers
+		const TArray<TSharedPtr<FJsonValue>>* TriggersArr;
+		if ((*MappingObj)->TryGetArrayField(TEXT("triggers"), TriggersArr))
+		{
+			TArray<FEnhancedActionKeyMapping>& Mappings = const_cast<TArray<FEnhancedActionKeyMapping>&>(Context->GetMappings());
+			int32 MappingIdx = Mappings.Num() - 1;
+
+			for (const auto& TrigVal : *TriggersArr)
+			{
+				FString TrigType;
+				if (TrigVal->TryGetString(TrigType))
+				{
+					FString TrigError;
+					// Create a minimal params object for trigger creation
+					TSharedRef<FJsonObject> TrigParams = MakeShared<FJsonObject>();
+					UInputTrigger* Trigger = CreateTrigger(TrigType, TrigParams, TrigError);
+					if (Trigger)
+					{
+						Mappings[MappingIdx].Triggers.Add(Trigger);
+						TriggersAdded++;
+					}
+					else
+					{
+						Warnings.Add(FString::Printf(TEXT("mappings[%d] trigger '%s': %s"), i, *TrigType, *TrigError));
+					}
+				}
+				else
+				{
+					// Object form with params: {"type": "Hold", "hold_time": 1.0}
+					const TSharedPtr<FJsonObject>* TrigObj;
+					if (TrigVal->TryGetObject(TrigObj))
+					{
+						FString TrigType2;
+						if ((*TrigObj)->TryGetStringField(TEXT("type"), TrigType2))
+						{
+							FString TrigError;
+							TSharedRef<FJsonObject> TrigParamsRef = (*TrigObj).ToSharedRef();
+							UInputTrigger* Trigger = CreateTrigger(TrigType2, TrigParamsRef, TrigError);
+							if (Trigger)
+							{
+								Mappings[MappingIdx].Triggers.Add(Trigger);
+								TriggersAdded++;
+							}
+							else
+							{
+								Warnings.Add(FString::Printf(TEXT("mappings[%d] trigger '%s': %s"), i, *TrigType2, *TrigError));
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Add modifiers
+		const TArray<TSharedPtr<FJsonValue>>* ModifiersArr;
+		if ((*MappingObj)->TryGetArrayField(TEXT("modifiers"), ModifiersArr))
+		{
+			TArray<FEnhancedActionKeyMapping>& Mappings = const_cast<TArray<FEnhancedActionKeyMapping>&>(Context->GetMappings());
+			int32 MappingIdx = Mappings.Num() - 1;
+
+			for (const auto& ModVal : *ModifiersArr)
+			{
+				FString ModType;
+				if (ModVal->TryGetString(ModType))
+				{
+					FString ModError;
+					TSharedRef<FJsonObject> ModParams = MakeShared<FJsonObject>();
+					UInputModifier* Modifier = CreateModifier(ModType, ModParams, ModError);
+					if (Modifier)
+					{
+						Mappings[MappingIdx].Modifiers.Add(Modifier);
+						ModifiersAdded++;
+					}
+					else
+					{
+						Warnings.Add(FString::Printf(TEXT("mappings[%d] modifier '%s': %s"), i, *ModType, *ModError));
+					}
+				}
+				else
+				{
+					// Object form: {"type": "Swizzle", "swizzle_order": "YXZ"}
+					const TSharedPtr<FJsonObject>* ModObj;
+					if (ModVal->TryGetObject(ModObj))
+					{
+						FString ModType2;
+						if ((*ModObj)->TryGetStringField(TEXT("type"), ModType2))
+						{
+							FString ModError;
+							TSharedRef<FJsonObject> ModParamsRef = (*ModObj).ToSharedRef();
+							UInputModifier* Modifier = CreateModifier(ModType2, ModParamsRef, ModError);
+							if (Modifier)
+							{
+								Mappings[MappingIdx].Modifiers.Add(Modifier);
+								ModifiersAdded++;
+							}
+							else
+							{
+								Warnings.Add(FString::Printf(TEXT("mappings[%d] modifier '%s': %s"), i, *ModType2, *ModError));
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Save
+	Context->MarkPackageDirty();
+	FString SaveError;
+	if (!SaveAsset(Context, SaveError)) return FMCPToolResult::Error(SaveError);
+
+	TSharedPtr<FJsonObject> ResultData = MakeShared<FJsonObject>();
+	ResultData->SetStringField(TEXT("context_path"), Context->GetPathName());
+	ResultData->SetStringField(TEXT("context_name"), Context->GetName());
+	ResultData->SetNumberField(TEXT("mappings_added"), MappingsAdded);
+	ResultData->SetNumberField(TEXT("triggers_added"), TriggersAdded);
+	ResultData->SetNumberField(TEXT("modifiers_added"), ModifiersAdded);
+	ResultData->SetNumberField(TEXT("total_mappings"), Context->GetMappings().Num());
+
+	if (Errors.Num() > 0)
+	{
+		ResultData->SetArrayField(TEXT("errors"), StringArrayToJsonArray(Errors));
+	}
+
+	FMCPToolResult Result = FMCPToolResult::Success(
+		FString::Printf(TEXT("Created %d mappings, %d triggers, %d modifiers on '%s'"),
+			MappingsAdded, TriggersAdded, ModifiersAdded, *Context->GetName()),
+		ResultData);
+
+	Result.Warnings = Warnings;
+	if (Errors.Num() > 0)
+	{
+		Result.Warnings.Add(FString::Printf(TEXT("%d mapping entries had errors"), Errors.Num()));
+	}
+	return Result;
 }
 
 // ============================================================================
