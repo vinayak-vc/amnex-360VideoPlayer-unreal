@@ -75,6 +75,15 @@ protected:
     UCameraComponent* LODCamera;
 
 private:
+    // Cached nDisplay rig "Camera_Left" scene component. The LODCamera (Player0's
+    // view) is snapped to this every tick so the LiDAR LOD manager — which reads
+    // the first local player's LEFT-eye view origin — computes LOD from the rig's
+    // left camera position as the FlyPawn flies the rig around.
+    UPROPERTY()
+    USceneComponent* RigLeftCamera = nullptr;
+
+    USceneComponent* FindRigLeftCamera() const;
+
     UPROPERTY()
     class UPointCloudLoaderWidget* LoaderWidget;
 

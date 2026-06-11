@@ -153,6 +153,26 @@ void AFlyPawn::ToggleUI()
     }
 }
 
+USceneComponent* AFlyPawn::FindRigLeftCamera() const
+{
+    if (!DisplayClusterActor || !DisplayClusterActor->GetRootComponent())
+        return nullptr;
+
+    // Match the xform/camera ID defined in the .ndisplay config — same name
+    // convention used by PointCloudLoaderWidget::OnSetCameraClicked ("Camera_Left").
+    TArray<USceneComponent*> Components;
+    DisplayClusterActor->GetRootComponent()->GetChildrenComponents(true, Components);
+
+    for (USceneComponent* Comp : Components)
+    {
+        if (Comp && Comp->GetName().Contains(TEXT("Camera_Left")))
+        {
+            return Comp;
+        }
+    }
+    return nullptr;
+}
+
 void AFlyPawn::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
@@ -174,11 +194,19 @@ void AFlyPawn::Tick(float DeltaSeconds)
         DisplayClusterActor->GetActorLocation(),
         DisplayClusterActor->GetActorRotation());
 
-    UE_LOG(LogTemp, Warning,
-    TEXT("Controller Rot: %s"),
-    *Controller->GetControlRotation().ToString());
-
-    UE_LOG(LogTemp, Warning,
-        TEXT("Display Rot: %s"),
-        *DisplayClusterActor->GetActorRotation().ToString());
+    // Drive the LiDAR LOD off the nDisplay rig's LEFT camera. The LOD manager
+    // (FLidarPointCloudViewData::Compute) reads the first local player's LEFT-eye
+    // view origin, so snapping the LODCamera (Player0's view) onto the rig's
+    // Camera_Left component makes LOD recompute from that exact eye position as
+    // the rig flies. Falls back to the rig-origin sync above if not found.
+    if (!RigLeftCamera)
+    {
+        RigLeftCamera = FindRigLeftCamera();
+    }
+    if (RigLeftCamera && LODCamera)
+    {
+        LODCamera->SetWorldLocationAndRotation(
+            RigLeftCamera->GetComponentLocation(),
+            RigLeftCamera->GetComponentRotation());
+    }
 }

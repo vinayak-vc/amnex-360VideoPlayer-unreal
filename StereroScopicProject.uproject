@@ -34,6 +34,7 @@
 		{
 			"Name": "UnrealClaude",
 			"Enabled": true,
+			"EditorOnly": true,
 			"SupportedTargetPlatforms": [
 				"Win64",
 				"Linux",
@@ -55,6 +56,13 @@
 				"Win64",
 				"Mac",
 				"Linux"
+			]
+		},
+		{
+			"Name": "PointForgeViewer",
+			"Enabled": true,
+			"SupportedTargetPlatforms": [
+				"Win64"
 			]
 		},
 		{
