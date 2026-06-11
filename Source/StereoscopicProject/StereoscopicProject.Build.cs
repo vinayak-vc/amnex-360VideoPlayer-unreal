@@ -15,7 +15,16 @@ public class StereoscopicProject : ModuleRules {
             "Slate",
             "SlateCore",
             "EnhancedInput",
-            "DisplayCluster"
+            "DisplayCluster",
+            "PakFile",
+            "AssetRegistry"
         });
+
+        // DesktopPlatform (OS file dialog for the Browse button) isn't available
+        // in Shipping — only link it for editor/Development configs.
+        if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+        {
+            PrivateDependencyModuleNames.Add("DesktopPlatform");
+        }
     }
 }

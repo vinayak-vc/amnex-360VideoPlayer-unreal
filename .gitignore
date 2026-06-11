@@ -14,3 +14,5 @@ Saved
 *.xcworkspace
 .idea/
 .claude/
+# PointForge Viewer plugin is tracked in its own repo (vinayak-vc/UEPointForge)
+Plugins/PointForgeViewer/

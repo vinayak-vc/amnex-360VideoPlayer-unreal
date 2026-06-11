@@ -107,9 +107,9 @@
         },
         "nDisplay": {
             "settings": {
-                "ndisplay_cfg_file": "C:\\UnrealProject\\StereroScopicProject\\Content\\nDisplayConfig\\SBS_nDisplay.uasset",
-                "launch_mode": "Standalone (ICVFX)",
-                "packaged_game_path": "",
+                "ndisplay_cfg_file": "C:\\UnrealProject\\SBS_nDisplay-1920_1080.ndisplay",
+                "launch_mode": "Packaged Game",
+                "packaged_game_path": "E:\\UnrealProject\\amnex-360VideoPlayer-unreal\\Build\\PointCloudv3\\Windows\\StereoscopicProject.exe",
                 "use_all_available_cores": false,
                 "texture_streaming": true,
                 "sound": false,
@@ -160,7 +160,7 @@
                 "stage_session_id": 0
             },
             "Node_0": {
-                "address": "192.168.1.211",
+                "address": "127.0.0.1",
                 "roles": [],
                 "ddc_build_platforms": [
                     "Windows",
@@ -169,19 +169,19 @@
                     "LinuxEditor"
                 ],
                 "autojoin_mu_server": true,
-                "last_launch_command": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor.exe \"C:\\UnrealProject\\StereroScopicProject\\StereroScopicProject.uproject\" -game /Game/PointCloudData/Level/PointCloudLevel -messaging -dc_cluster -nosplash -fixedseed -NoVerifyGC -noxrstereo -xrtrackingonly -RemoteControlIsHeadless   -StageFriendlyName=\"Node_0\"  -MaxGPUCount=2 -dc_cfg=\"C:\\Users\\Rushit Vaghela\\AppData\\Local\\Temp\\ndisplay\\4B7157574DCD0D8B37F6F18E5A706F50.ndisplay\" -dx12 -dc_dev_mono   -nosound -NoLoadingScreen -DisablePython -dc_node=Node_0 Log=Node_0.log -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput -unattended -NoScreenMessages -handleensurepercent=0 -UDPMESSAGING_TRANSPORT_MULTICAST=\"230.0.0.1:6666\" -UDPMESSAGING_TRANSPORT_UNICAST=\"192.168.1.211:0\" -UDPMESSAGING_TRANSPORT_STATIC=\"192.168.1.28:9030\" -ExecCmds=\"DisableAllScreenMessages\" -windowed -forceres WinX=0 WinY=0 ResX=3840 ResY=1080 -CONCERTRETRYAUTOCONNECTONERROR -CONCERTAUTOCONNECT -CONCERTSERVER=\"user_settings_MU_Server_WDjJVKNsuTqj\" -CONCERTSESSION=\"MU_Session\" -CONCERTDISPLAYNAME=\"Node_0\" -CONCERTISHEADLESS -DPCVars=\"Slate.bAllowNotifications=0,p.Chaos.Solver.Deterministic=1,LevelInstance.ForceEditorWorldMode=1\" ",
-                "last_log_path": "C:\\UnrealProject\\StereroScopicProject\\Saved\\Logs\\Switchboard\\Node_0.log",
+                "last_launch_command": "",
+                "last_log_path": "",
                 "last_trace_path": "",
                 "exclude_from_build": false,
                 "exclude_from_insights": false,
                 "last_sync_filter_hash": "",
-                "ue_command_line": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor.exe \"C:\\UnrealProject\\StereroScopicProject\\StereroScopicProject.uproject\" -game /Game/PointCloudData/Level/PointCloudLevel -messaging -dc_cluster -nosplash -fixedseed -NoVerifyGC -noxrstereo -xrtrackingonly -RemoteControlIsHeadless   -StageFriendlyName=\"Node_0\"  -MaxGPUCount=2 -dc_cfg=\"C:\\Users\\Rushit Vaghela\\AppData\\Local\\Temp\\ndisplay\\4B7157574DCD0D8B37F6F18E5A706F50.ndisplay\" -dx12 -dc_dev_mono   -nosound -NoLoadingScreen -DisablePython -dc_node=Node_0 Log=Node_0.log -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput -unattended -NoScreenMessages -handleensurepercent=0 -UDPMESSAGING_TRANSPORT_MULTICAST=\"230.0.0.1:6666\" -UDPMESSAGING_TRANSPORT_UNICAST=\"192.168.1.211:0\" -UDPMESSAGING_TRANSPORT_STATIC=\"192.168.1.28:9030\" -ExecCmds=\"DisableAllScreenMessages\" -windowed -forceres WinX=0 WinY=0 ResX=3840 ResY=1080 -CONCERTRETRYAUTOCONNECTONERROR -CONCERTAUTOCONNECT -CONCERTSERVER=\"user_settings_MU_Server_WDjJVKNsuTqj\" -CONCERTSESSION=\"MU_Session\" -CONCERTDISPLAYNAME=\"Node_0\" -CONCERTISHEADLESS -DPCVars=\"Slate.bAllowNotifications=0,p.Chaos.Solver.Deterministic=1,LevelInstance.ForceEditorWorldMode=1\" ",
+                "ue_command_line": "E:\\UnrealProject\\amnex-360VideoPlayer-unreal\\Build\\PointCloudv3\\Windows\\StereoscopicProject.exe    -messaging -dc_cluster -nosplash -fixedseed -NoVerifyGC -noxrstereo -xrtrackingonly -RemoteControlIsHeadless   -StageFriendlyName=\"Node_0\"  -MaxGPUCount=2 -dc_cfg=\"C:\\UnrealProject\\SBS_nDisplay-1920_1080.ndisplay\" -dx12 -dc_dev_mono   -nosound -NoLoadingScreen -DisablePython -dc_node=Node_0 Log=Node_0.log -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput -unattended -NoScreenMessages -handleensurepercent=0 -UDPMESSAGING_TRANSPORT_MULTICAST=\"230.0.0.1:6666\" -UDPMESSAGING_TRANSPORT_UNICAST=\"127.0.0.1:0\" -UDPMESSAGING_TRANSPORT_STATIC=\"192.168.1.28:9030\" -ExecCmds=\"DisableAllScreenMessages\" -windowed -forceres WinX=0 WinY=0 ResX=1920 ResY=1080 -CONCERTRETRYAUTOCONNECTONERROR -CONCERTAUTOCONNECT -CONCERTSERVER=\"user_settings_MU_Server_WDjJVKNsuTqj\" -CONCERTSESSION=\"MU_Session\" -CONCERTDISPLAYNAME=\"Node_0\" -CONCERTISHEADLESS -DPCVars=\"Slate.bAllowNotifications=0,p.Chaos.Solver.Deterministic=1,LevelInstance.ForceEditorWorldMode=1\" ",
                 "window_position": [
                     0,
                     0
                 ],
                 "window_resolution": [
-                    3840,
+                    1920,
                     1080
                 ],
                 "fullscreen": false,
