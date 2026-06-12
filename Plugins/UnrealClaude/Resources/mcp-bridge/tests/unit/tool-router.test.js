@@ -22,14 +22,18 @@ describe("classifyTool", () => {
     }
   });
 
-  it("classifies all 9 hidden tools", () => {
+  it("classifies all 8 hidden tools", () => {
     const expected = [
       "task_submit", "task_status", "task_result", "task_list", "task_cancel",
-      "execute_script", "cleanup_scripts", "get_script_history", "run_console_command",
+      "cleanup_scripts", "get_script_history", "run_console_command",
     ];
     for (const name of expected) {
       expect(classifyTool(name)).toBe("hidden");
     }
+  });
+
+  it("classifies execute_script as simple (exposed for direct calls)", () => {
+    expect(classifyTool("execute_script")).toBe("simple");
   });
 
   it("classifies mega tools (not simple, not hidden)", () => {
@@ -176,12 +180,12 @@ describe("ROUTER_TOOL_SCHEMA", () => {
 });
 
 describe("classification sets", () => {
-  it("SIMPLE_TOOL_NAMES has 12 entries", () => {
-    expect(SIMPLE_TOOL_NAMES.size).toBe(12);
+  it("SIMPLE_TOOL_NAMES has 16 entries", () => {
+    expect(SIMPLE_TOOL_NAMES.size).toBe(16);
   });
 
-  it("HIDDEN_TOOL_NAMES has 9 entries", () => {
-    expect(HIDDEN_TOOL_NAMES.size).toBe(9);
+  it("HIDDEN_TOOL_NAMES has 8 entries", () => {
+    expect(HIDDEN_TOOL_NAMES.size).toBe(8);
   });
 
   it("DOMAIN_TOOL_MAP has 6 domains with correct values", () => {
@@ -194,8 +198,8 @@ describe("classification sets", () => {
     expect(DOMAIN_TOOL_MAP.asset).toBe("asset");
   });
 
-  it("BLUEPRINT_QUERY_OPS has 9 entries", () => {
-    expect(BLUEPRINT_QUERY_OPS.size).toBe(9);
+  it("BLUEPRINT_QUERY_OPS has 11 entries", () => {
+    expect(BLUEPRINT_QUERY_OPS.size).toBe(11);
   });
 
   it("no overlap between simple and hidden sets", () => {

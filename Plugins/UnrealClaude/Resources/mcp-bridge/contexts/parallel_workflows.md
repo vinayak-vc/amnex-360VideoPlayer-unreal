@@ -28,9 +28,9 @@ Guidance for decomposing complex Unreal tasks into parallel MCP tool calls and C
 
 | Class | Tools | Rule |
 |-------|-------|------|
-| **Parallel-safe** (read-only) | asset_search, get_level_actors, blueprint_query, asset_dependencies, asset_referencers, capture_viewport, get_output_log | Call freely in parallel. No conflicts. |
-| **Per-object safe** (modifying) | spawn_actor, move_actor, set_property, blueprint_modify, material, character, character_data, asset, enhanced_input, anim_blueprint_modify | Parallelize on DIFFERENT actors/assets. Never modify same object from two calls. |
-| **Sequential only** | open_level, delete_actors, execute_script, cleanup_scripts, run_console_command | Must run alone. open_level invalidates all refs. |
+| **Parallel-safe** (read-only) | asset_search, get_level_actors, blueprint_query, asset_dependencies, asset_referencers, capture_viewport, get_output_log, **get_property**, **level (get_actor_bounds only)** | Call freely in parallel. No conflicts. |
+| **Per-object safe** (modifying) | spawn_actor, move_actor, set_property, blueprint_modify, material, character, character_data, asset, enhanced_input, anim_blueprint_modify, **niagara**, **level (select_actors, focus_viewport)** | Parallelize on DIFFERENT actors/assets. Never modify same object from two calls. |
+| **Sequential only** | open_level, delete_actors, execute_script, cleanup_scripts, run_console_command, **level (save)** | Must run alone. open_level/level save invalidates or flushes state. |
 
 ---
 
@@ -73,9 +73,13 @@ Subagent C — Gameplay Actors:
 Parallel read-only calls:
   - get_level_actors → confirm all actors present
   - capture_viewport → visual check
+  - get_property (actor_name, property) → verify specific property values
 ```
 
 **Timeout budget:** Phase 1 ~1s + Phase 2 ~30s + Phase 3 ~1s ≈ 32s total
+
+**VFX tip:** Add niagara particle effects in Phase 2 alongside mesh placement.
+Use `level get_actor_bounds` first to get mesh center, then `niagara spawn_system` at `origin`.
 
 ---
 

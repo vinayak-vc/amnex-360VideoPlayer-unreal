@@ -15,14 +15,18 @@ export const SIMPLE_TOOL_NAMES = new Set([
   "move_actor",
   "delete_actors",
   "set_property",
+  "get_property",       // Sprint 1: read actor property
   "get_level_actors",
   "open_level",
+  "niagara",            // Sprint 3: Niagara particle operations
+  "level",              // Sprint 3: level save/bounds/select/focus
   "asset_search",
   "asset_dependencies",
   "asset_referencers",
   "capture_viewport",
   "get_output_log",
   "blueprint_query",
+  "execute_script",     // exposed for direct Python/C++/console execution via MCP
 ]);
 
 // Hidden tools: callable but never listed
@@ -32,7 +36,6 @@ export const HIDDEN_TOOL_NAMES = new Set([
   "task_result",
   "task_list",
   "task_cancel",
-  "execute_script",
   "cleanup_scripts",
   "get_script_history",
   "run_console_command",
@@ -59,6 +62,8 @@ export const BLUEPRINT_QUERY_OPS = new Set([
   "get_node_pins",
   "search_nodes",
   "find_references",
+  "find_function",        // Sprint 1: search UFUNCTIONs by name across engine classes
+  "get_class_functions",  // Sprint 3: list all BlueprintCallable functions on a class
 ]);
 
 // Character operations that route to "character_data" instead of "character".
@@ -121,12 +126,14 @@ export function categorizeToolForStatus(toolName) {
   if (cls === "mega") return TOOL_TO_DOMAIN[toolName] || "utility";
   if (cls === "hidden") return toolName.startsWith("task_") ? "task_queue" : "scripting";
   // Simple tools
+  if (toolName === "execute_script") return "scripting"; // simple now, but report as scripting
   if (toolName.startsWith("asset_")) return "asset";
   if (toolName === "blueprint_query") return "blueprint";
-  if (toolName === "open_level") return "level";
+  if (toolName === "open_level" || toolName === "level") return "level";
+  if (toolName === "niagara") return "vfx";
   if (toolName.includes("actor") || toolName === "spawn_actor" ||
       toolName === "move_actor" || toolName === "delete_actors" ||
-      toolName === "set_property") return "actor";
+      toolName === "set_property" || toolName === "get_property") return "actor";
   return "utility"; // capture_viewport, get_output_log
 }
 
@@ -139,20 +146,32 @@ export const ROUTER_TOOL_SCHEMA = {
     "Route a command to a domain-specific Unreal Editor tool.",
     "",
     'domain:"blueprint"',
-    "  modify ops: create, add_variable, remove_variable, add_function,",
-    "  remove_function, add_node, add_nodes, delete_node, connect_pins,",
-    "  disconnect_pins, set_pin_value",
+    "  modify ops: create, add_variable, remove_variable, set_variable_default,",
+    "  add_function, remove_function, add_node, add_nodes, delete_node,",
+    "  connect_pins, disconnect_pins, bulk_connect, set_pin_value",
     "  query ops: list, inspect, get_graph, get_nodes, get_variables,",
-    "  get_functions, get_node_pins, search_nodes, find_references",
-    "  Modify requires blueprint_path. Query: list uses path_filter/type_filter/name_filter,",
+    "  get_functions, get_node_pins, search_nodes, find_references,",
+    "  find_function, get_class_functions",
+    "  Modify requires blueprint_path. Query: list uses path_filter/type_filter/name_filter.",
     "  inspect/get_graph/get_nodes/get_variables/get_functions require blueprint_path.",
     "  get_node_pins requires blueprint_path + node_id.",
     "  search_nodes requires blueprint_path + query.",
     "  find_references requires blueprint_path + ref_name.",
-    "  add_node uses node_type+node_params; positions are pos_x/pos_y scalars.",
+    "  find_function: query (substring), exact (bool), limit — returns class+CallFunction hint.",
+    "  get_class_functions: class (required), include_inherited (default true), pure_only, limit.",
+    "  set_variable_default: blueprint_path, variable_name, value (string).",
+    "  bulk_connect: blueprint_path, connections[] (source_node_id/source_pin/target_node_id/target_pin).",
+    "  add_node node_types: CallFunction, Branch, Event, CustomEvent, VariableGet/Set,",
+    "  Sequence, Cast, ForEach, ForEachWithBreak, DoOnce, Gate, Delay,",
+    "  SwitchInt, SwitchString, SwitchEnum (needs enum_class), MakeStruct, BreakStruct,",
+    "  MakeArray, Select, Timeline, GetSubsystem, GetSubsystemFromPC,",
+    "  Add, Subtract, Multiply, Divide, PrintString, EnhancedInputAction.",
+    "  VariableGet/Set accept variable OR variable_name. Cast needs class/target_class.",
+    "  MakeStruct/BreakStruct needs struct (FVector/FHitResult/etc). Timeline needs timeline_name.",
+    "  GetSubsystem needs subsystem_class (e.g. EnhancedInputLocalPlayerSubsystem).",
     "  add_nodes per-node spec accepts type or node_type + params or node_params; connections accept",
     "  from_node/from_pin/to_node/to_pin OR source_node_id/source_pin/target_node_id/target_pin.",
-    "  connect_pins/disconnect_pins/delete_node/add_node/set_pin_value optionally accept",
+    "  connect_pins/disconnect_pins/bulk_connect/delete_node/add_node/set_pin_value optionally accept",
     "  graph_name + is_function_graph (default: event graph).",
     "  No explicit compile op — modify ops auto-compile.",
     "",
@@ -219,6 +238,7 @@ export const ROUTER_TOOL_SCHEMA = {
       domain: {
         type: "string",
         description: "blueprint | anim | character | enhanced_input | material | asset",
+        // Note: niagara, level, get_property, set_property, spawn_actor etc. are direct simple tools — call them without unreal_ue router
       },
       operation: {
         type: "string",

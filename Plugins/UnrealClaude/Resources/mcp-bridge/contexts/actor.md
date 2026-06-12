@@ -261,15 +261,27 @@ GetWorld()->OverlapMultiByChannel(Overlaps, Location, FQuat::Identity, ECC_Pawn,
 
 ## MCP Actor Operations
 
-Available via `spawn_actor`, `move_actor`, `delete_actors`, `get_level_actors`:
-
 | Tool | Description |
 |------|-------------|
-| `spawn_actor` | Spawn actor by class path |
+| `spawn_actor` | Spawn actor by class path; params: `class`, `location`, `rotation`, `scale`, `name` |
 | `move_actor` | Set actor location/rotation/scale |
 | `delete_actors` | Remove actors by name/pattern |
-| `get_level_actors` | List actors with optional filtering |
-| `set_property` | Modify actor properties |
+| `get_level_actors` | List actors with optional class_filter/name_filter |
+| `set_property` | Set actor property via dot-path (e.g. `LightComponent.Intensity`) |
+| `get_property` | Read actor property via dot-path — complement to set_property |
+| `niagara` | Spawn/configure Niagara particle systems; ops: `spawn_system`, `set_parameter`, `list_systems` |
+
+## MCP Level / Viewport Operations
+
+| Tool | Operation | Description |
+|------|-----------|-------------|
+| `level` | `save` | Save current level to disk |
+| `level` | `get_actor_bounds` | Get bounding box (origin, extent, min, max) of an actor |
+| `level` | `select_actors` | Select actors by name/class/filter in editor viewport |
+| `level` | `focus_viewport` | Move editor camera to focus on actor |
+| `open_level` | `open` / `new` / `save_as` / `list_templates` | Level file management |
+
+> **Niagara workflow tip**: use `level get_actor_bounds` to get the geometric center of a mesh, then pass `origin` as the `location` to `niagara spawn_system` for exact placement.
 
 ## Level Management
 
