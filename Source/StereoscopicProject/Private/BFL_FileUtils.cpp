@@ -28,3 +28,14 @@ FString UBFL_FileUtils::GetFileNameFromPath(const FString& FilePath)
 {
 	return FPaths::GetBaseFilename(FilePath);
 }
+
+FString UBFL_FileUtils::GetPFConvertPath()
+{
+#if WITH_EDITOR
+	// In Editor, point to the source build directory
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("../PointForge/build/Release/pfconvert.exe"));
+#else
+	// In packaged build, point to the bundled directory
+	return FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("PointForge/pfconvert.exe"));
+#endif
+}

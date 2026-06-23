@@ -24,4 +24,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "FileUtils")
 	static FString GetFileNameFromPath(const FString& FilePath);
+
+	/**
+	 * Returns the absolute path to pfconvert.exe (handles both Editor and Packaged builds)
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "FileUtils")
+	static FString GetPFConvertPath();
 };

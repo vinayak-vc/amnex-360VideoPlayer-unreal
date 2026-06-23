@@ -16,15 +16,14 @@ public class StereoscopicProject : ModuleRules {
             "SlateCore",
             "EnhancedInput",
             "DisplayCluster",
-            "PakFile",
-            "AssetRegistry"
+            "PointForgeViewer",
         });
 
-        // DesktopPlatform (OS file dialog for the Browse button) isn't available
-        // in Shipping — only link it for editor/Development configs.
-        if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+        // Package PointForge binaries
+        string PointForgeDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(ModuleDirectory, "../../../../PointForge/build/Release"));
+        if (System.IO.Directory.Exists(PointForgeDir))
         {
-            PrivateDependencyModuleNames.Add("DesktopPlatform");
+            RuntimeDependencies.Add("$(ProjectDir)/PointForge/...", PointForgeDir + "/...");
         }
     }
 }

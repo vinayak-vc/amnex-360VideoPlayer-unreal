@@ -2,17 +2,19 @@
 #include "Components/EditableTextBox.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "PointCloudLoaderActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "DisplayClusterRootActor.h"
 #include "Components/SceneComponent.h"
+#include "PFConvert.h"
+#include "PFConvertPanel.h"
+#include "PFPointCloudActor.h"
 
-// OS file dialog is editor/Development-only (DesktopPlatform isn't linked into
-// Shipping builds). Guard so the module still compiles in Shipping.
-#if !UE_BUILD_SHIPPING
-#include "DesktopPlatformModule.h"
-#include "IDesktopPlatform.h"
 #include "Framework/Application/SlateApplication.h"
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "Windows/WindowsHWrapper.h"
+#include <commdlg.h>
+#include "Windows/HideWindowsPlatformTypes.h"
 #endif
 
 void UPointCloudLoaderWidget::NativeConstruct()
@@ -37,42 +39,46 @@ void UPointCloudLoaderWidget::NativeConstruct()
 
 void UPointCloudLoaderWidget::OnLoadClicked()
 {
-	if(!PathInput) return;
-	
+	if (!PathInput) return;
+
 	FString Path = PathInput->GetText().ToString().TrimStartAndEnd();
-	if(Path.IsEmpty())
+	if (Path.IsEmpty())
 	{
-		if(StatusText) StatusText->SetText(FText::FromString(TEXT("Path cannot be empty.")));
+		if (StatusText) StatusText->SetText(FText::FromString(TEXT("Path cannot be empty.")));
 		return;
 	}
 
 	TArray<AActor*> Found;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APointCloudLoaderActor::StaticClass(), Found);
-	
-	if(Found.Num() == 0)
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APFPointCloudActor::StaticClass(), Found);
+	if (Found.Num() == 0)
 	{
-		if(StatusText) StatusText->SetText(FText::FromString(TEXT("No PointCloudLoaderActor found in level.")));
+		if (StatusText) StatusText->SetText(FText::FromString(TEXT("No PFPointCloudActor in level.")));
 		return;
 	}
 
-	APointCloudLoaderActor* Loader = Cast<APointCloudLoaderActor>(Found[0]);
-	if(Loader)
+	APFPointCloudActor* PFActor = Cast<APFPointCloudActor>(Found[0]);
+	if (!PFActor) return;
+
+	const FString CacheDir = FPFConvert::GetCacheDirFor(Path);
+	const bool bConverted = FPFConvert::IsConverted(CacheDir);
+	UE_LOG(LogTemp, Warning, TEXT("[LoadPanel] Path=%s | CacheDir=%s | IsConverted=%d"), *Path, *CacheDir, bConverted ? 1 : 0);
+
+	if (!bConverted)
 	{
-		if(StatusText) StatusText->SetText(FText::FromString(FString::Printf(TEXT("Loading: %s"), *Path)));
-	
-		if(Path.EndsWith(TEXT(".pak"), ESearchCase::IgnoreCase))
+		if (StatusText) StatusText->SetText(FText::FromString(
+			TEXT("Model not converted — press Convert in the panel.")));
+		PFActor->ShowConvertPanel();
+		if (PFActor->ConvertPanel)
 		{
-			// Large-cloud path: mount external pak + auto-derive the cloud asset,
-			// cluster-synced across all nDisplay nodes. Empty asset/mount args
-			// -> derive asset from pak, use pak's baked mount point.
-			Loader->RequestLoadPak(Path, FString(), FString());
+			PFActor->ConvertPanel->SetStatusText(TEXT("Model not converted — press Convert in the panel."));
+			PFActor->ConvertPanel->SetSourcePath(Path);
 		}
-		else
-		{
-			// Small dev clouds (.ply/.las) loaded in-memory on this node only.
-			Loader->LoadFromPath(Path);
-		}
+		return;
 	}
+
+	if (StatusText) StatusText->SetText(FText::FromString(FString::Printf(TEXT("Loading: %s"), *Path)));
+	PFActor->LoadPointCloudFile(Path);
+	RemoveFromParent();
 }
 
 void UPointCloudLoaderWidget::OnSetCameraClicked()
@@ -133,38 +139,34 @@ void UPointCloudLoaderWidget::OnSetCameraClicked()
 
 void UPointCloudLoaderWidget::OnBrowseClicked()
 {
-#if !UE_BUILD_SHIPPING
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	if(!DesktopPlatform) return;
-
-	// Parent the dialog to the main window if Slate is up.
-	const void* ParentWindowHandle = nullptr;
+#if PLATFORM_WINDOWS
+	// Windows native file dialog — works in Editor and packaged builds alike.
+	HWND ParentHwnd = nullptr;
 	if(FSlateApplication::IsInitialized())
 	{
-		TSharedPtr<SWindow> MainWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
-		if(MainWindow.IsValid() && MainWindow->GetNativeWindow().IsValid())
+		TSharedPtr<SWindow> TopWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+		if(TopWindow.IsValid() && TopWindow->GetNativeWindow().IsValid())
 		{
-			ParentWindowHandle = MainWindow->GetNativeWindow()->GetOSWindowHandle();
+			ParentHwnd = static_cast<HWND>(TopWindow->GetNativeWindow()->GetOSWindowHandle());
 		}
 	}
 
-	TArray<FString> OutFiles;
-	const bool      bPicked = DesktopPlatform->OpenFileDialog(
-		ParentWindowHandle,
-		TEXT("Select Point Cloud Pak"),
-		TEXT(""), // default path
-		TEXT(""), // default file
-		TEXT("Point Cloud Pak (*.pak)|*.pak"),
-		EFileDialogFlags::None,
-		OutFiles);
+	wchar_t szFile[MAX_PATH] = { 0 };
+	OPENFILENAMEW ofn       = {};
+	ofn.lStructSize         = sizeof(ofn);
+	ofn.hwndOwner           = ParentHwnd;
+	ofn.lpstrFile           = szFile;
+	ofn.nMaxFile            = MAX_PATH;
+	ofn.lpstrFilter         = L"Point Cloud Files\0*.ply;*.las;*.laz;*.e57\0All Files\0*.*\0";
+	ofn.Flags               = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
-	if(bPicked && OutFiles.Num() > 0 && PathInput)
+	if(GetOpenFileNameW(&ofn) && PathInput)
 	{
-		PathInput->SetText(FText::FromString(OutFiles[0]));
-		if(StatusText) StatusText->SetText(FText::FromString(TEXT("Pak selected. Press Load.")));
+		PathInput->SetText(FText::FromString(FString(szFile)));
+		if(StatusText) StatusText->SetText(FText::FromString(TEXT("File selected. Press Load.")));
 	}
 #else
-	// Shipping: no OS dialog. Type/paste the path into PathInput manually.
-	if(StatusText) StatusText->SetText(FText::FromString(TEXT("Browse unavailable in Shipping — type the path.")));
+	if(StatusText) StatusText->SetText(FText::FromString(TEXT("Browse unavailable on this platform — type the path.")));
 #endif
 }
+
