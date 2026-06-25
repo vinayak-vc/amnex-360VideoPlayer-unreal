@@ -65,6 +65,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="nDisplay")
     ADisplayClusterRootActor* DisplayClusterActor;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="nDisplay")
+    ACameraActor* CameraActor;
 
     // LOD-correction camera: constrained to 16:9 so LocalPlayer::CalcSceneView()
     // returns a projection matrix with correct ScreenSizeFactor regardless of the

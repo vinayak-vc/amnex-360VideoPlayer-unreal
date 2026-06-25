@@ -78,7 +78,7 @@ void UPointCloudLoaderWidget::OnLoadClicked()
 
 	if (StatusText) StatusText->SetText(FText::FromString(FString::Printf(TEXT("Loading: %s"), *Path)));
 	PFActor->LoadPointCloudFile(Path);
-	RemoveFromParent();
+	//RemoveFromParent();
 }
 
 void UPointCloudLoaderWidget::OnSetCameraClicked()
